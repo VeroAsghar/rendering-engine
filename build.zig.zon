@@ -2,9 +2,13 @@
     .name = "rendering-engine",
     .version = "0.1.0",
     .dependencies = .{
-        .mach_core = .{
-            .url = "https://pkg.machengine.org/mach-core/9243a331a3eb0d4ba97aec7f793e60f1cf90bd8b.tar.gz",
-            .hash = "12206e93994d37b3ce5c790e391736130f2a26bec06eca01ca51ab08a6d8105ab7f9",
+        .mach_gpu = .{
+            .url = "https://pkg.machengine.org/mach-gpu/3719f54c902c7a71b4ff0ce53a971edd3964fcac.tar.gz",
+            .hash = "1220a6aa5e161806d191e6a39c08dab0c4af6f97147529d658266a48b473dbea299d",
+        },
+        .mach_glfw = .{
+            .url = "https://pkg.machengine.org/mach-glfw/58a16012c33b047b9468cccb53ecd95835456121.tar.gz",
+            .hash = "1220dcf8c006b5bd91bb55c732eac6d95afe16247058f31348e1e2e071dfca7923db",
         },
     },
 }
