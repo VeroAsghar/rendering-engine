@@ -24,13 +24,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const cimgui_dep = b.anonymousDependency("vendor/cimgui", @import("vendor/cimgui/build.zig"), .{
-        .target = target,
-        .optimize = optimize,
-    });
-
-    exe.linkLibrary(cimgui_dep.artifact("cimgui"));
-
     exe.addModule("mach-gpu", b.dependency("mach_gpu", .{
         .target = target,
         .optimize = optimize,
@@ -43,9 +36,6 @@ pub fn build(b: *std.Build) void {
     exe.addModule("mach-glfw", glfw_dep.module("mach-glfw"));
     try @import("mach_glfw").link(glfw_dep.builder, exe);
 
-    // This declares intent for the executable to be installed into the
-    // standard location when the user invokes the "install" step (the default
-    // step when running `zig build`).
     b.installArtifact(exe);
 
     // This *creates* a Run step in the build graph, to be executed when another

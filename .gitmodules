@@ -1,3 +1,0 @@
-[submodule "vendor/cimgui"]
-	path = vendor/cimgui
-	url = git@github.com:VeroAsghar/cimgui.git
