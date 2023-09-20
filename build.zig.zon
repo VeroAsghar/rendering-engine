@@ -1,5 +1,5 @@
 .{
-    .name = "myproject",
+    .name = "rendering-engine",
     .version = "0.1.0",
     .dependencies = .{
         .mach_core = .{

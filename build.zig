@@ -21,7 +21,7 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
     const app = try mach_core.App.init(b, mach_core_dep.builder, .{
-        .name = "myapp",
+        .name = "rendering-engine",
         .src = "src/main.zig",
         .target = target,
         .optimize = optimize,
