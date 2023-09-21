@@ -1,91 +1,76 @@
 const std = @import("std");
-const core = @import("core");
-const gpu = core.gpu;
+const glfw = @import("mach-glfw");
+const gl = @import("gl");
+const c = @cImport({
+    @cDefine("CIMGUI_DEFINE_ENUMS_AND_STRUCTS", "");
+    @cInclude("cimgui.h");
+    @cInclude("cimgui_impl.h");
+});
+const log = std.log.scoped(.Engine);
 
-pub const App = @This();
-
-title_timer: core.Timer,
-pipeline: *gpu.RenderPipeline,
-
-pub fn init(app: *App) !void {
-    try core.init(.{});
-
-    const shader_module = core.device.createShaderModuleWGSL("shader.wgsl", @embedFile("shader.wgsl"));
-    defer shader_module.release();
-
-    // Fragment state
-    const blend = gpu.BlendState{};
-    const color_target = gpu.ColorTargetState{
-        .format = core.descriptor.format,
-        .blend = &blend,
-        .write_mask = gpu.ColorWriteMaskFlags.all,
-    };
-    const fragment = gpu.FragmentState.init(.{
-        .module = shader_module,
-        .entry_point = "frag_main",
-        .targets = &.{color_target},
-    });
-    const pipeline_descriptor = gpu.RenderPipeline.Descriptor{
-        .fragment = &fragment,
-        .vertex = gpu.VertexState{
-            .module = shader_module,
-            .entry_point = "vertex_main",
-        },
-    };
-    const pipeline = core.device.createRenderPipeline(&pipeline_descriptor);
-
-    app.* = .{ .title_timer = try core.Timer.start(), .pipeline = pipeline };
+fn glGetProcAddress(p: glfw.GLProc, proc: [:0]const u8) ?gl.FunctionPointer {
+    _ = p;
+    return glfw.getProcAddress(proc);
 }
 
-pub fn deinit(app: *App) void {
-    defer core.deinit();
-    _ = app;
+/// Default GLFW error handling callback
+fn errorCallback(error_code: glfw.ErrorCode, description: [:0]const u8) void {
+    std.log.err("glfw: {}: {s}\n", .{ error_code, description });
 }
 
-pub fn update(app: *App) !bool {
-    var iter = core.pollEvents();
-    while (iter.next()) |event| {
-        switch (event) {
-            .close => return true,
-            else => {},
-        }
+pub fn main() !void {
+    glfw.setErrorCallback(errorCallback);
+    if (!glfw.init(.{})) {
+        std.log.err("failed to initialize GLFW: {?s}", .{glfw.getErrorString()});
+        std.process.exit(1);
     }
+    defer glfw.terminate();
 
-    const queue = core.queue;
-    const back_buffer_view = core.swap_chain.getCurrentTextureView().?;
-    const color_attachment = gpu.RenderPassColorAttachment{
-        .view = back_buffer_view,
-        .clear_value = std.mem.zeroes(gpu.Color),
-        .load_op = .clear,
-        .store_op = .store,
+    // Create our window
+    const window = glfw.Window.create(640, 480, "mach-glfw + zig-opengl", null, null, .{
+        .opengl_profile = .opengl_core_profile,
+        .context_version_major = 4,
+        .context_version_minor = 0,
+    }) orelse {
+        std.log.err("failed to create GLFW window: {?s}", .{glfw.getErrorString()});
+        std.process.exit(1);
     };
+    defer window.destroy();
 
-    const encoder = core.device.createCommandEncoder(null);
-    const render_pass_info = gpu.RenderPassDescriptor.init(.{
-        .color_attachments = &.{color_attachment},
-    });
-    const pass = encoder.beginRenderPass(&render_pass_info);
-    pass.setPipeline(app.pipeline);
-    pass.draw(3, 1, 0, 0);
-    pass.end();
-    pass.release();
+    glfw.makeContextCurrent(window);
 
-    var command = encoder.finish(null);
-    encoder.release();
+    const proc: glfw.GLProc = undefined;
+    try gl.load(proc, glGetProcAddress);
 
-    queue.submit(&[_]*gpu.CommandBuffer{command});
-    command.release();
-    core.swap_chain.present();
-    back_buffer_view.release();
+    _ = c.igCreateContext(null);
+    defer c.igDestroyContext(null);
 
-    // update the window title every second
-    if (app.title_timer.read() >= 1.0) {
-        app.title_timer.reset();
-        try core.printTitle("Triangle [ {d}fps ] [ Input {d}hz ]", .{
-            core.frameRate(),
-            core.inputRate(),
-        });
+    _ = c.igGetIO();
+    _ = c.ImGui_ImplGlfw_InitForOpenGL(@ptrCast(window.handle), true);
+    defer c.ImGui_ImplOpenGL3_Shutdown();
+
+    const glsl_version = "#version 150";
+    _ = c.ImGui_ImplOpenGL3_Init(glsl_version);
+    defer c.ImGui_ImplGlfw_Shutdown();
+
+    _ = c.igStyleColorsDark(null);
+
+    var showDemo = true;
+
+    // Wait for the user to close the window.
+    while (!window.shouldClose()) {
+        glfw.pollEvents();
+
+        c.ImGui_ImplOpenGL3_NewFrame();
+        c.ImGui_ImplGlfw_NewFrame();
+        c.igNewFrame();
+
+        c.igShowDemoWindow(&showDemo);
+
+        gl.clearColor(1, 0, 1, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        c.igRender();
+        c.ImGui_ImplOpenGL3_RenderDrawData(c.igGetDrawData());
+        window.swapBuffers();
     }
-
-    return false;
 }
